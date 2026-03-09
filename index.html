@@ -282,6 +282,7 @@
       }
       operator = op;
       justCalc = false;
+      current = '0';                           // ← reset so next digits start fresh
       const opSymbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
       expression = previous + ' ' + opSymbols[op];
       exprEl.textContent = expression;
