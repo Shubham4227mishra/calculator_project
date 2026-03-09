@@ -1,76 +1,95 @@
+# Workflow name shown in GitHub Actions
 name: Build and Deploy to ECS
 
+# Trigger workflow when code is pushed to main branch
 on:
   push:
     branches:
       - main
 
+# Required permissions for OIDC authentication
 permissions:
-  id-token: write
-  contents: read
+  id-token: write      # allows GitHub to request OIDC token
+  contents: read       # allows repo checkout
 
+# Environment variables used throughout the workflow
 env:
   AWS_REGION: ap-south-1
-  ECR_REPOSITORY: shubham
-  ECS_CLUSTER: calculator_prod_clusterr
-  ECS_SERVICE: calculator-service-mrabu83i
-  CONTAINER_NAME: calci
-  TASK_DEFINITION: calculator
+  ECR_REPOSITORY: shubham                # ECR repo name
+  ECS_CLUSTER: calculator_prod_clusterr  # ECS cluster name
+  ECS_SERVICE: calculator-service-mrabu83i  # ECS service name
+  TASK_DEFINITION: calculator            # ECS task definition name
+  CONTAINER_NAME: calci                  # container name inside task definition
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest   # GitHub runner environment
 
     steps:
 
+    # Step 1 — Checkout source code from GitHub repository
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    # Step 2 — Authenticate to AWS using OIDC (no AWS keys needed)
     - name: Configure AWS credentials (OIDC)
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: arn:aws:iam::153191561265:role/github_oidc
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: Login to ECR
+    # Step 3 — Login to Amazon ECR so Docker can push images
+    - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
+    # Step 4 — Create image tag using Git commit SHA
+    # This avoids using "latest" and gives traceable deployments
     - name: Set image tag
-      id: vars
       run: echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
 
+    # Step 5 — Build Docker image from Dockerfile
     - name: Build Docker image
       run: |
         docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
 
-    - name: Tag image for ECR
+    # Step 6 — Tag the image for the ECR registry
+    - name: Tag Docker image for ECR
       run: |
         docker tag $ECR_REPOSITORY:$IMAGE_TAG \
         ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:$IMAGE_TAG
 
-    - name: Push image to ECR
+    # Step 7 — Push Docker image to Amazon ECR
+    - name: Push Docker image to ECR
       run: |
         docker push \
         ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:$IMAGE_TAG
 
-    - name: Download current task definition
+    # Step 8 — Download current ECS task definition
+    # This retrieves the existing configuration so we can update only the image
+    - name: Download current ECS task definition
       run: |
         aws ecs describe-task-definition \
-          --task-definition $ECS_SERVICE \
-          --query taskDefinition > $TASK_DEFINITION
+          --task-definition $TASK_DEFINITION \
+          --query taskDefinition \
+          > task-definition.json
 
-    - name: Render new task definition
+    # Step 9 — Replace container image in the task definition
+    # This creates a new revision with the new Docker image
+    - name: Update task definition with new image
+      id: render
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
-        task-definition: ${{ env.TASK_DEFINITION }}
+        task-definition: task-definition.json
         container-name: ${{ env.CONTAINER_NAME }}
         image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
 
+    # Step 10 — Deploy the updated task definition to ECS
+    # ECS performs rolling deployment of new containers
     - name: Deploy to ECS
       uses: aws-actions/amazon-ecs-deploy-task-definition@v2
       with:
-        task-definition: ${{ env.TASK_DEFINITION }}
+        task-definition: ${{ steps.render.outputs.task-definition }}
         service: ${{ env.ECS_SERVICE }}
         cluster: ${{ env.ECS_CLUSTER }}
         wait-for-service-stability: true
