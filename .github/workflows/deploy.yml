@@ -15,7 +15,7 @@ env:
   ECS_CLUSTER: calculator_prod_clusterr
   ECS_SERVICE: calculator-service-mrabu83i
   CONTAINER_NAME: calci
-  TASK_DEFINITION: task-definition.json
+  TASK_DEFINITION: calculator
 
 jobs:
   deploy:
