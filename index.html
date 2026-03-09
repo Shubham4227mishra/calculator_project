@@ -1,358 +1,552 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CALC</title>
+  <title>CALC SUITE</title>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #0a0a0a;
-      --panel: #111111;
-      --border: #222;
-      --accent: #00ff88;
-      --accent2: #ff3366;
-      --text: #e8e8e8;
-      --muted: #555;
-      --btn-bg: #1a1a1a;
-      --btn-hover: #242424;
-      --btn-active: #2a2a2a;
+      --bg: #0a0a0a; --panel: #111; --card: #161616; --border: #222;
+      --accent: #00ff88; --accent2: #ff3366; --accent3: #ffaa00;
+      --accent4: #00aaff; --accent5: #aa66ff;
+      --text: #e8e8e8; --muted: #555;
+      --mono: 'Share Tech Mono', monospace; --display: 'Bebas Neue', sans-serif;
     }
-
     body {
-      background: var(--bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      font-family: 'Share Tech Mono', monospace;
-      overflow: hidden;
+      background: var(--bg); min-height: 100vh; font-family: var(--mono);
+      color: var(--text); display: flex; flex-direction: column;
+      align-items: center; padding: 20px 12px 60px;
     }
-
     body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: 
-        repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(0,255,136,0.015) 40px, rgba(0,255,136,0.015) 41px),
-        repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,255,136,0.015) 40px, rgba(0,255,136,0.015) 41px);
-      pointer-events: none;
+      content:''; position:fixed; inset:0; pointer-events:none;
+      background:
+        repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(0,255,136,.012) 40px,rgba(0,255,136,.012) 41px),
+        repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(0,255,136,.012) 40px,rgba(0,255,136,.012) 41px);
     }
+    .wrapper { position:relative; z-index:1; width:100%; max-width:420px; }
 
-    .calculator {
-      width: 340px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      box-shadow: 0 0 60px rgba(0,255,136,0.08), 0 0 120px rgba(0,255,136,0.04), inset 0 1px 0 rgba(255,255,255,0.05);
-      overflow: hidden;
-      position: relative;
+    /* Header */
+    .header { display:flex; align-items:baseline; gap:12px; margin-bottom:18px; padding-left:2px; }
+    .header h1 { font-family:var(--display); font-size:30px; letter-spacing:5px; color:var(--accent); }
+    .header span { font-size:10px; color:var(--muted); letter-spacing:2px; }
+
+    /* Tabs */
+    .tabs { display:grid; grid-template-columns:repeat(5,1fr); border:1px solid var(--border); border-radius:4px; overflow:hidden; margin-bottom:2px; }
+    .tab-btn {
+      background:var(--panel); border:none; color:var(--muted);
+      font-family:var(--display); font-size:10px; letter-spacing:1px;
+      padding:11px 2px; cursor:pointer; transition:all .2s;
+      border-right:1px solid var(--border); display:flex; flex-direction:column; align-items:center; gap:3px;
     }
+    .tab-btn:last-child { border-right:none; }
+    .tab-btn .ico { font-size:15px; }
+    .tab-btn:hover { background:var(--card); color:var(--text); }
+    .tab-btn.active { font-weight:bold; }
+    .tab-btn[data-tab="calc"].active    { background:var(--accent);  color:#000; }
+    .tab-btn[data-tab="fx"].active      { background:var(--accent3); color:#000; }
+    .tab-btn[data-tab="bmi"].active     { background:var(--accent2); color:#fff; }
+    .tab-btn[data-tab="unit"].active    { background:var(--accent4); color:#000; }
+    .tab-btn[data-tab="prop"].active    { background:var(--accent5); color:#fff; }
 
-    .calculator::before {
-      content: 'CALC v2.1';
-      position: absolute;
-      top: 12px;
-      left: 16px;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 11px;
-      letter-spacing: 3px;
-      color: var(--muted);
+    /* Panels */
+    .panel { display:none; }
+    .panel.active { display:block; }
+
+    /* ─── Calculator ─── */
+    .calc-wrap {
+      background:var(--panel); border:1px solid var(--border); border-radius:4px; overflow:hidden;
+      box-shadow:0 0 40px rgba(0,255,136,.07); position:relative;
     }
-
-    .calculator::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--accent), transparent);
-      opacity: 0.6;
-    }
-
+    .calc-wrap::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--accent),transparent); opacity:.5; }
     .display-area {
-      padding: 40px 20px 20px;
-      background: #0d0d0d;
-      border-bottom: 1px solid var(--border);
-      min-height: 120px;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      align-items: flex-end;
-      gap: 6px;
-      position: relative;
+      padding:28px 18px 16px; background:#0d0d0d; border-bottom:1px solid var(--border);
+      min-height:110px; display:flex; flex-direction:column; justify-content:flex-end; align-items:flex-end; gap:4px;
     }
+    .c-history   { font-size:11px; color:var(--muted); min-height:16px; letter-spacing:1px; }
+    .c-expression{ font-size:13px; color:#777; min-height:18px; text-align:right; }
+    .c-main      { font-family:var(--display); font-size:50px; color:var(--accent); letter-spacing:2px; line-height:1; text-shadow:0 0 20px rgba(0,255,136,.35); word-break:break-all; text-align:right; }
+    .c-main.err  { color:var(--accent2); text-shadow:0 0 20px rgba(255,51,102,.4); font-size:26px; }
+    .buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--border); padding:1px; }
+    .cb { background:#1a1a1a; border:none; color:var(--text); font-family:var(--mono); font-size:16px; padding:18px 8px; cursor:pointer; letter-spacing:1px; transition:background .1s,transform .05s; position:relative; overflow:hidden; }
+    .cb::after { content:''; position:absolute; inset:0; background:radial-gradient(circle at center,rgba(0,255,136,.12) 0%,transparent 70%); opacity:0; transition:opacity .2s; }
+    .cb:hover { background:#222; }
+    .cb:hover::after { opacity:1; }
+    .cb:active { background:#2a2a2a; transform:scale(0.95); }
+    .cb-op  { color:var(--accent); }
+    .cb-clr { color:var(--accent2); font-family:var(--display); letter-spacing:2px; font-size:13px; }
+    .cb-eq  { background:var(--accent); color:#000; font-family:var(--display); letter-spacing:2px; font-size:20px; }
+    .cb-eq:hover { background:#00e87a; }
+    .cb-zero{ grid-column:span 2; }
+    .cb-sp  { color:#aaa; font-size:13px; }
 
-    .history {
-      font-size: 12px;
-      color: var(--muted);
-      min-height: 18px;
-      letter-spacing: 1px;
-      transition: opacity 0.2s;
+    /* ─── Shared tool UI ─── */
+    .tool-wrap { background:var(--panel); border:1px solid var(--border); border-radius:4px; padding:18px; }
+    .tool-title { font-family:var(--display); font-size:20px; letter-spacing:3px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+    .t-orange { color:var(--accent3); } .t-red { color:var(--accent2); }
+    .t-blue { color:var(--accent4); }   .t-purple { color:var(--accent5); }
+
+    .fg { margin-bottom:13px; }
+    .fg label { display:block; font-size:10px; color:var(--muted); letter-spacing:2px; margin-bottom:5px; }
+    .fg input, .fg select {
+      width:100%; background:#0d0d0d; border:1px solid var(--border); color:var(--text);
+      font-family:var(--mono); font-size:14px; padding:9px 11px; border-radius:3px; outline:none; transition:border-color .2s;
     }
+    .fg input:focus, .fg select:focus { border-color:#444; }
+    .fg select option { background:#111; }
+    .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .row3 { display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:end; }
+    .swap { background:#1a1a1a; border:1px solid var(--border); color:var(--accent); font-size:17px; padding:8px 11px; border-radius:3px; cursor:pointer; transition:all .2s; }
+    .swap:hover { background:#222; transform:rotate(180deg); }
 
-    .expression {
-      font-size: 14px;
-      color: #888;
-      min-height: 20px;
-      letter-spacing: 1px;
-      word-break: break-all;
-      text-align: right;
+    .res-box { background:#0d0d0d; border:1px solid var(--border); border-radius:3px; padding:14px; margin-top:10px; text-align:center; }
+    .rv { font-family:var(--display); font-size:34px; letter-spacing:2px; }
+    .rl { font-size:10px; color:var(--muted); letter-spacing:2px; margin-top:3px; }
+    .rv.orange { color:var(--accent3); text-shadow:0 0 16px rgba(255,170,0,.3); }
+    .rv.red    { color:var(--accent2); text-shadow:0 0 16px rgba(255,51,102,.3); }
+    .rv.blue   { color:var(--accent4); text-shadow:0 0 16px rgba(0,170,255,.3); }
+    .rv.purple { color:var(--accent5); text-shadow:0 0 16px rgba(170,102,255,.3); }
+    .rv.green  { color:var(--accent);  text-shadow:0 0 16px rgba(0,255,136,.3); }
+
+    .multi-res { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:10px; }
+    .mini-box  { background:#0d0d0d; border:1px solid var(--border); border-radius:3px; padding:9px 10px; text-align:center; }
+    .mv { font-family:var(--display); font-size:18px; color:var(--accent5); }
+    .ml { font-size:9px; color:var(--muted); letter-spacing:1px; margin-top:2px; }
+
+    /* Pill cats */
+    .pill-row { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:14px; }
+    .pill {
+      background:#1a1a1a; border:1px solid var(--border); color:var(--muted);
+      font-family:var(--mono); font-size:10px; letter-spacing:1px; padding:4px 9px;
+      border-radius:20px; cursor:pointer; transition:all .2s;
     }
+    .pill:hover { border-color:#444; color:var(--text); }
+    .pill.u-active { background:var(--accent4); border-color:var(--accent4); color:#000; }
+    .pill.p-active { background:var(--accent5); border-color:var(--accent5); color:#fff; }
 
-    .main-display {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 52px;
-      color: var(--accent);
-      letter-spacing: 2px;
-      line-height: 1;
-      text-shadow: 0 0 20px rgba(0,255,136,0.4);
-      word-break: break-all;
-      text-align: right;
-      transition: all 0.1s;
-    }
+    /* BMI */
+    .bmi-meter { margin-top:8px; height:7px; background:var(--border); border-radius:4px; overflow:hidden; }
+    .bmi-bar   { height:100%; border-radius:4px; transition:width .5s,background .5s; width:0%; }
+    .bmi-cats  { display:flex; justify-content:space-between; margin-top:3px; }
+    .bmi-cats span { font-size:9px; color:var(--muted); letter-spacing:1px; }
 
-    .main-display.error {
-      color: var(--accent2);
-      text-shadow: 0 0 20px rgba(255,51,102,0.4);
-      font-size: 28px;
-    }
-
-    .blink {
-      animation: blink 1s step-end infinite;
-    }
-
-    @keyframes blink {
-      50% { opacity: 0; }
-    }
-
-    .buttons {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1px;
-      background: var(--border);
-      padding: 1px;
-    }
-
-    button {
-      background: var(--btn-bg);
-      border: none;
-      color: var(--text);
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 16px;
-      padding: 18px 8px;
-      cursor: pointer;
-      letter-spacing: 1px;
-      transition: background 0.1s, color 0.1s, transform 0.05s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    button::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at center, rgba(0,255,136,0.15) 0%, transparent 70%);
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    button:hover { background: var(--btn-hover); }
-    button:hover::after { opacity: 1; }
-    button:active { background: var(--btn-active); transform: scale(0.96); }
-
-    .btn-op {
-      color: var(--accent);
-    }
-
-    .btn-clear {
-      color: var(--accent2);
-      font-family: 'Bebas Neue', sans-serif;
-      letter-spacing: 2px;
-      font-size: 14px;
-    }
-
-    .btn-equals {
-      background: var(--accent);
-      color: #000;
-      font-family: 'Bebas Neue', sans-serif;
-      letter-spacing: 2px;
-      font-size: 22px;
-      font-weight: bold;
-    }
-
-    .btn-equals:hover { background: #00e87a; }
-    .btn-equals::after { background: radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, transparent 70%); }
-
-    .btn-zero { grid-column: span 2; }
-
-    .btn-special {
-      color: #aaa;
-      font-size: 13px;
-    }
-
-    .pressed {
-      animation: press 0.1s ease;
-    }
-
-    @keyframes press {
-      0% { transform: scale(1); }
-      50% { transform: scale(0.94); }
-      100% { transform: scale(1); }
-    }
+    /* Note */
+    .note { font-size:9px; color:var(--muted); text-align:center; letter-spacing:1px; margin-top:8px; }
   </style>
 </head>
 <body>
-  <div class="calculator" id="calc">
-    <div class="display-area">
-      <div class="history" id="history"></div>
-      <div class="expression" id="expression"></div>
-      <div class="main-display" id="display">0</div>
-    </div>
-    <div class="buttons">
-      <button class="btn-clear" onclick="clearAll()">AC</button>
-      <button class="btn-special" onclick="toggleSign()">+/-</button>
-      <button class="btn-special" onclick="percentage()">%</button>
-      <button class="btn-op" onclick="setOp('/')">÷</button>
+<div class="wrapper">
+  <div class="header"><h1>CALC SUITE</h1><span>5 TOOLS IN ONE</span></div>
 
-      <button onclick="input('7')">7</button>
-      <button onclick="input('8')">8</button>
-      <button onclick="input('9')">9</button>
-      <button class="btn-op" onclick="setOp('*')">×</button>
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="calc" onclick="sw('calc')"><span class="ico">🔢</span>CALC</button>
+    <button class="tab-btn" data-tab="fx"   onclick="sw('fx')"  ><span class="ico">💱</span>FX</button>
+    <button class="tab-btn" data-tab="bmi"  onclick="sw('bmi')" ><span class="ico">⚖️</span>BMI</button>
+    <button class="tab-btn" data-tab="unit" onclick="sw('unit')"><span class="ico">📐</span>UNIT</button>
+    <button class="tab-btn" data-tab="prop" onclick="sw('prop')"><span class="ico">🏠</span>PROP</button>
+  </div>
 
-      <button onclick="input('4')">4</button>
-      <button onclick="input('5')">5</button>
-      <button onclick="input('6')">6</button>
-      <button class="btn-op" onclick="setOp('-')">−</button>
-
-      <button onclick="input('1')">1</button>
-      <button onclick="input('2')">2</button>
-      <button onclick="input('3')">3</button>
-      <button class="btn-op" onclick="setOp('+')">+</button>
-
-      <button class="btn-zero" onclick="input('0')">0</button>
-      <button onclick="inputDot()">.</button>
-      <button class="btn-equals" onclick="calculate()">=</button>
+  <!-- ════════ CALCULATOR ════════ -->
+  <div class="panel active" id="p-calc">
+    <div class="calc-wrap">
+      <div class="display-area">
+        <div class="c-history" id="ch"></div>
+        <div class="c-expression" id="ce"></div>
+        <div class="c-main" id="cd">0</div>
+      </div>
+      <div class="buttons">
+        <button class="cb cb-clr" onclick="cClr()">AC</button>
+        <button class="cb cb-sp"  onclick="cSgn()">+/−</button>
+        <button class="cb cb-sp"  onclick="cPct()">%</button>
+        <button class="cb cb-op"  onclick="cOp('/')">÷</button>
+        <button class="cb" onclick="cIn('7')">7</button>
+        <button class="cb" onclick="cIn('8')">8</button>
+        <button class="cb" onclick="cIn('9')">9</button>
+        <button class="cb cb-op" onclick="cOp('*')">×</button>
+        <button class="cb" onclick="cIn('4')">4</button>
+        <button class="cb" onclick="cIn('5')">5</button>
+        <button class="cb" onclick="cIn('6')">6</button>
+        <button class="cb cb-op" onclick="cOp('-')">−</button>
+        <button class="cb" onclick="cIn('1')">1</button>
+        <button class="cb" onclick="cIn('2')">2</button>
+        <button class="cb" onclick="cIn('3')">3</button>
+        <button class="cb cb-op" onclick="cOp('+')">+</button>
+        <button class="cb cb-zero" onclick="cIn('0')">0</button>
+        <button class="cb" onclick="cDot()">.</button>
+        <button class="cb cb-eq" onclick="cEq()">=</button>
+      </div>
     </div>
   </div>
 
-  <script>
-    let current = '0';
-    let previous = null;
-    let operator = null;
-    let justCalc = false;
-    let expression = '';
+  <!-- ════════ CURRENCY FX ════════ -->
+  <div class="panel" id="p-fx">
+    <div class="tool-wrap">
+      <div class="tool-title t-orange">CURRENCY FX</div>
+      <div class="fg"><label>AMOUNT</label><input type="number" id="fx-amt" value="1" oninput="calcFX()"/></div>
+      <div class="row3">
+        <div class="fg" style="margin:0"><label>FROM</label><select id="fx-from" onchange="calcFX()"></select></div>
+        <button class="swap" onclick="fxSwp()">⇄</button>
+        <div class="fg" style="margin:0"><label>TO</label><select id="fx-to" onchange="calcFX()"></select></div>
+      </div>
+      <div class="res-box">
+        <div class="rv orange" id="fx-res">—</div>
+        <div class="rl" id="fx-rate">SELECT CURRENCIES</div>
+      </div>
+      <div class="note">⚠ INDICATIVE RATES · NOT FOR LIVE TRADING</div>
+    </div>
+  </div>
 
-    const display = document.getElementById('display');
-    const exprEl = document.getElementById('expression');
-    const histEl = document.getElementById('history');
+  <!-- ════════ BMI ════════ -->
+  <div class="panel" id="p-bmi">
+    <div class="tool-wrap">
+      <div class="tool-title t-red">BMI CALCULATOR</div>
+      <div class="fg"><label>UNIT SYSTEM</label>
+        <select id="bmi-sys" onchange="bmiToggle()">
+          <option value="metric">Metric (kg / cm)</option>
+          <option value="imperial">Imperial (lbs / ft·in)</option>
+        </select>
+      </div>
+      <div id="bmi-m">
+        <div class="row2">
+          <div class="fg"><label>WEIGHT (kg)</label><input type="number" id="bmi-kg" placeholder="70" oninput="calcBMI()"/></div>
+          <div class="fg"><label>HEIGHT (cm)</label><input type="number" id="bmi-cm" placeholder="175" oninput="calcBMI()"/></div>
+        </div>
+      </div>
+      <div id="bmi-i" style="display:none">
+        <div class="fg"><label>WEIGHT (lbs)</label><input type="number" id="bmi-lb" placeholder="154" oninput="calcBMI()"/></div>
+        <div class="row2">
+          <div class="fg"><label>HEIGHT (ft)</label><input type="number" id="bmi-ft" placeholder="5" oninput="calcBMI()"/></div>
+          <div class="fg"><label>HEIGHT (in)</label><input type="number" id="bmi-in" placeholder="9" oninput="calcBMI()"/></div>
+        </div>
+      </div>
+      <div class="res-box">
+        <div class="rv red" id="bmi-val">—</div>
+        <div class="rl" id="bmi-cat">ENTER HEIGHT &amp; WEIGHT</div>
+      </div>
+      <div class="bmi-meter"><div class="bmi-bar" id="bmi-bar"></div></div>
+      <div class="bmi-cats"><span>UNDER</span><span>NORMAL</span><span>OVER</span><span>OBESE</span></div>
+    </div>
+  </div>
 
-    function updateDisplay(val) {
-      display.classList.remove('error');
-      let s = String(val);
-      if (s.length > 10) {
-        let n = parseFloat(val);
-        s = n.toPrecision(8).replace(/\.?0+$/, '');
-        if (s.length > 12) s = n.toExponential(4);
-      }
-      display.textContent = s;
-    }
+  <!-- ════════ UNIT CONVERTER ════════ -->
+  <div class="panel" id="p-unit">
+    <div class="tool-wrap">
+      <div class="tool-title t-blue">UNIT CONVERTER</div>
+      <div class="pill-row" id="u-pills"></div>
+      <div class="fg"><label>VALUE</label><input type="number" id="u-val" placeholder="Enter value" oninput="calcUnit()"/></div>
+      <div class="row3">
+        <div class="fg" style="margin:0"><label>FROM</label><select id="u-from" onchange="calcUnit()"></select></div>
+        <button class="swap" style="color:var(--accent4)" onclick="uSwp()">⇄</button>
+        <div class="fg" style="margin:0"><label>TO</label><select id="u-to" onchange="calcUnit()"></select></div>
+      </div>
+      <div class="res-box">
+        <div class="rv blue" id="u-res">—</div>
+        <div class="rl" id="u-lbl">SELECT UNITS</div>
+      </div>
+    </div>
+  </div>
 
-    function input(digit) {
-      if (justCalc) { current = digit; justCalc = false; expression = ''; }
-      else if (current === '0') current = digit;
-      else if (current.length < 12) current += digit;
-      updateDisplay(current);
-    }
+  <!-- ════════ PROPERTY ════════ -->
+  <div class="panel" id="p-prop">
+    <div class="tool-wrap">
+      <div class="tool-title t-purple">PROPERTY TOOLS</div>
+      <div class="pill-row" id="p-pills"></div>
+      <div id="p-body"></div>
+    </div>
+  </div>
+</div>
 
-    function inputDot() {
-      if (justCalc) { current = '0.'; justCalc = false; expression = ''; }
-      else if (!current.includes('.')) current += '.';
-      updateDisplay(current);
-    }
+<script>
+// ═══════════════════════════════════
+// TABS
+// ═══════════════════════════════════
+function sw(t) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('p-' + t).classList.add('active');
+  document.querySelector('[data-tab="' + t + '"]').classList.add('active');
+}
 
-    function setOp(op) {
-      if (operator && !justCalc) {
-        const res = compute(parseFloat(previous), parseFloat(current), operator);
-        previous = String(res);
-        updateDisplay(res);
-      } else {
-        previous = current;
-      }
-      operator = op;
-      justCalc = false;
-      current = '0';                           // ← reset so next digits start fresh
-      const opSymbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
-      expression = previous + ' ' + opSymbols[op];
-      exprEl.textContent = expression;
-    }
+// ═══════════════════════════════════
+// CALCULATOR
+// ═══════════════════════════════════
+let cur='0', prev=null, op=null, done=false;
+const OPS = {'+':'+','-':'−','*':'×','/':'÷'};
+const $cd = () => document.getElementById('cd');
+const $ce = () => document.getElementById('ce');
+const $ch = () => document.getElementById('ch');
 
-    function compute(a, b, op) {
-      switch(op) {
-        case '+': return a + b;
-        case '-': return a - b;
-        case '*': return a * b;
-        case '/': return b === 0 ? 'ERR: DIV/0' : a / b;
-      }
-    }
+function cUpd(v) {
+  $cd().classList.remove('err');
+  let s = String(v);
+  if (s.length > 10) { let n=parseFloat(v); s=n.toPrecision(8).replace(/\.?0+$/,''); if(s.length>12) s=n.toExponential(4); }
+  $cd().textContent = s;
+}
+function cIn(d) {
+  if (done) { cur=d; done=false; }
+  else if (cur==='0') cur=d;
+  else if (cur.length<12) cur+=d;
+  cUpd(cur);
+}
+function cDot() {
+  if (done) { cur='0.'; done=false; }
+  else if (!cur.includes('.')) cur+='.';
+  cUpd(cur);
+}
+function cOp(o) {
+  if (op && !done) {
+    const r = cCmp(parseFloat(prev), parseFloat(cur), op);
+    prev = String(r); cUpd(r);
+  } else { prev = cur; }
+  op=o; done=false; cur='0';
+  $ce().textContent = prev + ' ' + OPS[op];
+}
+function cCmp(a, b, o) {
+  if (o==='+') return a+b;
+  if (o==='-') return a-b;
+  if (o==='*') return a*b;
+  if (o==='/') return b===0 ? 'ERR:DIV/0' : a/b;
+}
+function cEq() {
+  if (!op || prev===null) return;
+  const a=parseFloat(prev), b=parseFloat(cur);
+  const full = prev+' '+OPS[op]+' '+cur;
+  const r = cCmp(a,b,op);
+  if (typeof r==='string') {
+    $cd().classList.add('err'); $cd().textContent=r;
+    $ce().textContent=''; $ch().textContent='';
+  } else {
+    $ch().textContent = full+' ='; $ce().textContent='';
+    cur=String(r); cUpd(r);
+  }
+  op=null; prev=null; done=true;
+}
+function cClr() { cur='0';prev=null;op=null;done=false; $cd().classList.remove('err'); $cd().textContent='0'; $ce().textContent=''; $ch().textContent=''; }
+function cSgn() { cur=String(parseFloat(cur)*-1); cUpd(cur); }
+function cPct() { cur=String(parseFloat(cur)/100); cUpd(cur); }
 
-    function calculate() {
-      if (!operator || previous === null) return;
-      const a = parseFloat(previous);
-      const b = parseFloat(current);
-      const opSymbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
-      const fullExpr = previous + ' ' + opSymbols[operator] + ' ' + current;
-      const result = compute(a, b, operator);
-      if (typeof result === 'string') {
-        display.classList.add('error');
-        display.textContent = result;
-        histEl.textContent = '';
-        exprEl.textContent = '';
-      } else {
-        histEl.textContent = fullExpr + ' =';
-        exprEl.textContent = '';
-        current = String(result);
-        updateDisplay(result);
-      }
-      operator = null;
-      previous = null;
-      justCalc = true;
-    }
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('p-calc').classList.contains('active')) return;
+  if (e.key>='0'&&e.key<='9') cIn(e.key);
+  else if (e.key==='.') cDot();
+  else if (e.key==='+') cOp('+');
+  else if (e.key==='-') cOp('-');
+  else if (e.key==='*') cOp('*');
+  else if (e.key==='/') { e.preventDefault(); cOp('/'); }
+  else if (e.key==='Enter'||e.key==='=') cEq();
+  else if (e.key==='Escape') cClr();
+  else if (e.key==='Backspace') { cur=cur.length>1?cur.slice(0,-1):'0'; cUpd(cur); }
+});
 
-    function clearAll() {
-      current = '0'; previous = null; operator = null; justCalc = false; expression = '';
-      display.classList.remove('error');
-      display.textContent = '0';
-      exprEl.textContent = '';
-      histEl.textContent = '';
-    }
+// ═══════════════════════════════════
+// CURRENCY FX
+// ═══════════════════════════════════
+const FX = {
+  USD:{n:'US Dollar',s:'$',r:1}, EUR:{n:'Euro',s:'€',r:0.92}, GBP:{n:'British Pound',s:'£',r:0.79},
+  INR:{n:'Indian Rupee',s:'₹',r:83.12}, JPY:{n:'Japanese Yen',s:'¥',r:149.5},
+  AUD:{n:'Australian Dollar',s:'A$',r:1.53}, CAD:{n:'Canadian Dollar',s:'C$',r:1.36},
+  CHF:{n:'Swiss Franc',s:'Fr',r:0.88}, CNY:{n:'Chinese Yuan',s:'¥',r:7.24},
+  HKD:{n:'Hong Kong Dollar',s:'HK$',r:7.82}, SGD:{n:'Singapore Dollar',s:'S$',r:1.34},
+  MXN:{n:'Mexican Peso',s:'$',r:17.15}, BRL:{n:'Brazilian Real',s:'R$',r:4.97},
+  KRW:{n:'S.Korean Won',s:'₩',r:1325}, NOK:{n:'Norwegian Krone',s:'kr',r:10.55},
+  SEK:{n:'Swedish Krona',s:'kr',r:10.42}, DKK:{n:'Danish Krone',s:'kr',r:6.88},
+  NZD:{n:'NZ Dollar',s:'NZ$',r:1.63}, ZAR:{n:'S.African Rand',s:'R',r:18.63},
+  AED:{n:'UAE Dirham',s:'د.إ',r:3.67}, SAR:{n:'Saudi Riyal',s:'ر.س',r:3.75},
+  THB:{n:'Thai Baht',s:'฿',r:35.10}, TRY:{n:'Turkish Lira',s:'₺',r:30.50},
+};
+(function initFX() {
+  const f=document.getElementById('fx-from'), t=document.getElementById('fx-to');
+  Object.entries(FX).forEach(([c,x]) => {
+    f.innerHTML += `<option value="${c}">${c} — ${x.n}</option>`;
+    t.innerHTML += `<option value="${c}">${c} — ${x.n}</option>`;
+  });
+  t.value='INR'; calcFX();
+})();
+function calcFX() {
+  const amt=parseFloat(document.getElementById('fx-amt').value)||0;
+  const f=document.getElementById('fx-from').value, t=document.getElementById('fx-to').value;
+  const res=(amt/FX[f].r)*FX[t].r;
+  const rate=FX[t].r/FX[f].r;
+  document.getElementById('fx-res').textContent = FX[t].s+' '+res.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:4});
+  document.getElementById('fx-rate').textContent = '1 '+f+' = '+rate.toFixed(4)+' '+t;
+}
+function fxSwp() {
+  const f=document.getElementById('fx-from'),t=document.getElementById('fx-to');
+  [f.value,t.value]=[t.value,f.value]; calcFX();
+}
 
-    function toggleSign() {
-      current = String(parseFloat(current) * -1);
-      updateDisplay(current);
-    }
+// ═══════════════════════════════════
+// BMI
+// ═══════════════════════════════════
+function bmiToggle() {
+  const s=document.getElementById('bmi-sys').value;
+  document.getElementById('bmi-m').style.display=s==='metric'?'':'none';
+  document.getElementById('bmi-i').style.display=s==='imperial'?'':'none';
+  document.getElementById('bmi-val').textContent='—';
+  document.getElementById('bmi-cat').textContent='ENTER HEIGHT & WEIGHT';
+  document.getElementById('bmi-bar').style.width='0%';
+}
+function calcBMI() {
+  const s=document.getElementById('bmi-sys').value;
+  let kg, hm;
+  if (s==='metric') {
+    kg=parseFloat(document.getElementById('bmi-kg').value);
+    hm=parseFloat(document.getElementById('bmi-cm').value)/100;
+  } else {
+    kg=(parseFloat(document.getElementById('bmi-lb').value)||0)*0.453592;
+    const ft=parseFloat(document.getElementById('bmi-ft').value)||0;
+    const inc=parseFloat(document.getElementById('bmi-in').value)||0;
+    hm=(ft*12+inc)*0.0254;
+  }
+  if (!kg||!hm||hm===0) return;
+  const bmi=kg/(hm*hm);
+  const el=document.getElementById('bmi-val');
+  el.textContent=bmi.toFixed(1);
+  let label,color,pct;
+  if      (bmi<18.5){label='UNDERWEIGHT';   color='#00aaff'; pct=Math.max(5,(bmi/18.5)*22);}
+  else if (bmi<25)  {label='NORMAL WEIGHT'; color='#00ff88'; pct=22+(bmi-18.5)/6.5*25;}
+  else if (bmi<30)  {label='OVERWEIGHT';    color='#ffaa00'; pct=47+(bmi-25)/5*25;}
+  else               {label='OBESE';         color='#ff3366'; pct=Math.min(98,72+(bmi-30)/10*26);}
+  document.getElementById('bmi-cat').textContent=label;
+  document.getElementById('bmi-bar').style.cssText=`width:${pct}%;background:${color}`;
+  el.style.color=color; el.style.textShadow=`0 0 16px ${color}55`;
+}
 
-    function percentage() {
-      current = String(parseFloat(current) / 100);
-      updateDisplay(current);
-    }
+// ═══════════════════════════════════
+// UNIT CONVERTER
+// ═══════════════════════════════════
+const UNITS = {
+  Length:    {Meter:1,Kilometer:0.001,Centimeter:100,Millimeter:1000,Mile:0.000621371,Yard:1.09361,Foot:3.28084,Inch:39.3701,'Nautical Mile':0.000539957},
+  Weight:    {Kilogram:1,Gram:1000,Milligram:1e6,'Metric Ton':0.001,Pound:2.20462,Ounce:35.274,Stone:0.157473},
+  Temperature:{Celsius:'sp',Fahrenheit:'sp',Kelvin:'sp'},
+  Area:      {'Sq Meter':1,'Sq Km':1e-6,'Sq Cm':10000,'Sq Foot':10.7639,'Sq Inch':1550,Acre:0.000247105,Hectare:0.0001},
+  Volume:    {Liter:1,Milliliter:1000,'Cubic Meter':0.001,'Cubic Cm':1000,Gallon:0.264172,Quart:1.05669,Pint:2.11338,'Fluid Oz':33.814},
+  Speed:     {'km/h':1,'m/s':0.277778,'mph':0.621371,Knots:0.539957,'ft/s':0.911344},
+  Time:      {Second:1,Minute:1/60,Hour:1/3600,Day:1/86400,Week:1/604800,Month:1/2592000,Year:1/31536000,Millisecond:1000},
+  Data:      {Byte:1,Kilobyte:1/1024,Megabyte:1/1048576,Gigabyte:1/1073741824,Terabyte:1/1.0995e12,Bit:8},
+  Energy:    {Joule:1,Kilojoule:0.001,Calorie:0.239006,Kilocalorie:0.000239006,'Watt-hour':0.000277778,'kWh':2.778e-7},
+  Pressure:  {Pascal:1,Kilopascal:0.001,Bar:1e-5,PSI:0.000145038,Atmosphere:9.86923e-6,Torr:0.00750062},
+};
+let uCat='Length';
+(function initUnit() {
+  const row=document.getElementById('u-pills');
+  Object.keys(UNITS).forEach((c,i) => {
+    const b=document.createElement('button');
+    b.className='pill'+(i===0?' u-active':''); b.textContent=c;
+    b.onclick=()=>{uCat=c;document.querySelectorAll('.pill.u-active').forEach(x=>x.classList.remove('u-active'));b.classList.add('u-active');uLoad();calcUnit();};
+    row.appendChild(b);
+  });
+  uLoad();
+})();
+function uLoad() {
+  const keys=Object.keys(UNITS[uCat]);
+  const f=document.getElementById('u-from'),t=document.getElementById('u-to');
+  f.innerHTML=keys.map(k=>`<option>${k}</option>`).join('');
+  t.innerHTML=keys.map((k,i)=>`<option ${i===1?'selected':''}>${k}</option>`).join('');
+}
+function calcUnit() {
+  const v=parseFloat(document.getElementById('u-val').value);
+  const f=document.getElementById('u-from').value, t=document.getElementById('u-to').value;
+  if (isNaN(v)){document.getElementById('u-res').textContent='—';return;}
+  let r;
+  if (uCat==='Temperature') {
+    let c = f==='Celsius'?v : f==='Fahrenheit'?(v-32)*5/9 : v-273.15;
+    r = t==='Celsius'?c : t==='Fahrenheit'?c*9/5+32 : c+273.15;
+  } else {
+    r=(v/UNITS[uCat][f])*UNITS[uCat][t];
+  }
+  const fmt=Math.abs(r)<0.0001||Math.abs(r)>1e9 ? r.toExponential(4) : +r.toPrecision(7);
+  document.getElementById('u-res').textContent=fmt+' '+t;
+  document.getElementById('u-lbl').textContent=v+' '+f+' =';
+}
+function uSwp(){const f=document.getElementById('u-from'),t=document.getElementById('u-to');[f.value,t.value]=[t.value,f.value];calcUnit();}
 
-    document.addEventListener('keydown', (e) => {
-      if (e.key >= '0' && e.key <= '9') input(e.key);
-      else if (e.key === '.') inputDot();
-      else if (e.key === '+') setOp('+');
-      else if (e.key === '-') setOp('-');
-      else if (e.key === '*') setOp('*');
-      else if (e.key === '/') { e.preventDefault(); setOp('/'); }
-      else if (e.key === 'Enter' || e.key === '=') calculate();
-      else if (e.key === 'Escape') clearAll();
-      else if (e.key === 'Backspace') {
-        if (current.length > 1) current = current.slice(0, -1);
-        else current = '0';
-        updateDisplay(current);
-      }
-    });
-  </script>
+// ═══════════════════════════════════
+// PROPERTY TOOLS
+// ═══════════════════════════════════
+const PROPS=['Mortgage','Stamp Duty','Rental Yield','Area Convert','ROI','Affordability'];
+let pCat='Mortgage';
+(function initProp() {
+  const row=document.getElementById('p-pills');
+  PROPS.forEach((n,i)=>{
+    const b=document.createElement('button');
+    b.className='pill'+(i===0?' p-active':''); b.textContent=n;
+    b.onclick=()=>{pCat=n;document.querySelectorAll('.pill.p-active').forEach(x=>x.classList.remove('p-active'));b.classList.add('p-active');pRender();};
+    row.appendChild(b);
+  });
+  pRender();
+})();
+
+function pRender() {
+  const body=document.getElementById('p-body');
+  const fld=(lbl,id,ph)=>`<div class="fg"><label>${lbl}</label><input type="number" id="${id}" placeholder="${ph}" oninput="pCalc()"/></div>`;
+  const sel=(lbl,id,opts)=>`<div class="fg"><label>${lbl}</label><select id="${id}" onchange="pCalc()"><option>${opts.join('</option><option>')}</option></select></div>`;
+
+  if (pCat==='Mortgage') {
+    body.innerHTML=fld('PROPERTY PRICE ($)','m-price','500000')+fld('DOWN PAYMENT ($)','m-down','100000')+fld('ANNUAL RATE (%)','m-rate','6.5')+fld('LOAN TERM (YEARS)','m-term','30')+'<div id="p-out"></div>';
+  } else if (pCat==='Stamp Duty') {
+    body.innerHTML=fld('PROPERTY VALUE ($)','sd-val','400000')+sel('BUYER TYPE','sd-type',['First Time Buyer','Home Mover','Additional Property'])+'<div id="p-out"></div>';
+  } else if (pCat==='Rental Yield') {
+    body.innerHTML=fld('PROPERTY VALUE ($)','ry-val','350000')+fld('MONTHLY RENT ($)','ry-rent','1800')+fld('ANNUAL EXPENSES ($)','ry-exp','3000')+'<div id="p-out"></div>';
+  } else if (pCat==='Area Convert') {
+    body.innerHTML=fld('AREA VALUE','ac-val','1000')+sel('FROM UNIT','ac-from',['Square Feet','Square Meters','Square Yards','Acres','Hectares','Cents (India)','Guntha','Bigha (N.India)'])+'<div id="p-out"></div>';
+  } else if (pCat==='ROI') {
+    body.innerHTML=fld('PURCHASE PRICE ($)','r-buy','300000')+fld('CURRENT VALUE ($)','r-now','420000')+fld('TOTAL INVESTED ($)','r-inv','320000')+fld('YEARS HELD','r-yrs','5')+'<div id="p-out"></div>';
+  } else if (pCat==='Affordability') {
+    body.innerHTML=fld('GROSS ANNUAL INCOME ($)','a-inc','80000')+fld('MONTHLY DEBTS ($)','a-dbt','500')+fld('DOWN PAYMENT ($)','a-dwn','60000')+fld('INTEREST RATE (%)','a-rate','6.5')+'<div id="p-out"></div>';
+  }
+  pCalc();
+}
+
+function gv(id){return parseFloat(document.getElementById(id)?.value)||0;}
+function f2(n){return Number(n).toLocaleString('en',{maximumFractionDigits:0});}
+function f4(n){return Math.abs(n)<0.01?n.toExponential(3):+n.toPrecision(5);}
+function mbox(v,l){return `<div class="mini-box"><div class="mv">${v}</div><div class="ml">${l}</div></div>`;}
+
+function pCalc() {
+  const out=document.getElementById('p-out'); if(!out)return;
+  if (pCat==='Mortgage') {
+    const P=gv('m-price')-gv('m-down'), r=gv('m-rate')/100/12, n=gv('m-term')*12;
+    if (!P||!n) return;
+    const mo=r===0?P/n:P*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);
+    const tot=mo*n;
+    out.innerHTML=`<div class="multi-res">${mbox('$'+f2(mo),'MONTHLY PMT')}${mbox('$'+f2(P),'LOAN AMOUNT')}${mbox('$'+f2(tot),'TOTAL PAID')}${mbox('$'+f2(tot-P),'TOTAL INTEREST')}</div>`;
+  } else if (pCat==='Stamp Duty') {
+    const val=gv('sd-val');
+    const type=document.getElementById('sd-type')?.value||'';
+    const sur=type.includes('Additional')?0.03:0;
+    const bands=type.includes('First')
+      ?[[0,425000,0],[425000,625000,.05],[625000,Infinity,.05]]
+      :[[0,250000,0],[250000,925000,.05],[925000,1500000,.10],[1500000,Infinity,.12]];
+    let duty=0;
+    bands.forEach(([lo,hi,rate])=>{if(val>lo)duty+=(Math.min(val,hi)-lo)*(rate+sur);});
+    out.innerHTML=`<div class="multi-res">${mbox('$'+f2(duty),'STAMP DUTY')}${mbox((duty/val*100).toFixed(2)+'%','EFF RATE')}${mbox('$'+f2(val+duty),'TOTAL COST')}${mbox('$'+f2(val),'PROPERTY')}</div>`;
+  } else if (pCat==='Rental Yield') {
+    const val=gv('ry-val'), rent=gv('ry-rent'), exp=gv('ry-exp');
+    if (!val||!rent) return;
+    out.innerHTML=`<div class="multi-res">${mbox((rent*12/val*100).toFixed(2)+'%','GROSS YIELD')}${mbox(((rent*12-exp)/val*100).toFixed(2)+'%','NET YIELD')}${mbox('$'+f2(rent*12),'ANNUAL RENT')}${mbox('$'+f2(rent*12-exp),'NET INCOME')}</div>`;
+  } else if (pCat==='Area Convert') {
+    const v=gv('ac-val');
+    const M={'Square Feet':1,'Square Meters':10.7639,'Square Yards':9,'Acres':43560,'Hectares':107639,'Cents (India)':435.6,'Guntha':1089,'Bigha (N.India)':27225};
+    const from=document.getElementById('ac-from')?.value||'Square Feet';
+    const sf=v*(M[from]||1);
+    out.innerHTML=`<div class="multi-res">${mbox(f4(sf),'SQ FEET')}${mbox(f4(sf/10.7639),'SQ METERS')}${mbox(f4(sf/9),'SQ YARDS')}${mbox(f4(sf/43560),'ACRES')}${mbox(f4(sf/107639),'HECTARES')}${mbox(f4(sf/435.6),'CENTS(IN)')}</div>`;
+  } else if (pCat==='ROI') {
+    const buy=gv('r-buy'),now=gv('r-now'),inv=gv('r-inv'),yrs=gv('r-yrs');
+    if (!buy||!now) return;
+    const gain=now-buy, roi=gain/inv*100, ann=yrs?(Math.pow(now/buy,1/yrs)-1)*100:0;
+    out.innerHTML=`<div class="multi-res">${mbox('$'+f2(gain),'CAPITAL GAIN')}${mbox(roi.toFixed(2)+'%','TOTAL ROI')}${mbox(ann.toFixed(2)+'%','ANNUAL ROI')}${mbox('$'+f2(now-inv),'NET PROFIT')}</div>`;
+  } else if (pCat==='Affordability') {
+    const inc=gv('a-inc'),dbt=gv('a-dbt'),dwn=gv('a-dwn'),rate=gv('a-rate');
+    if (!inc) return;
+    const maxPmt=inc/12*0.43-dbt;
+    const r=rate/100/12, n=360;
+    const loan=r===0?maxPmt*n:maxPmt*(Math.pow(1+r,n)-1)/(r*Math.pow(1+r,n));
+    out.innerHTML=`<div class="multi-res">${mbox('$'+f2(loan+dwn),'MAX PRICE')}${mbox('$'+f2(loan),'MAX LOAN')}${mbox('$'+f2(inc/12*0.28),'MAX PMT (28%)')}${mbox('$'+f2(maxPmt),'MAX PMT (43%)')}</div>`;
+  }
+}
+</script>
 </body>
 </html>
